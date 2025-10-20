@@ -431,7 +431,7 @@ async function callOpenAI(userMessage) {
     // 디버깅: OpenAI API 요청 정보 로그
     console.log("=== OpenAI API 요청 시작 ===");
     console.log("요청 URL:", "https://api.openai.com/v1/chat/completions");
-    console.log("모델:", "gpt-5-nano");
+    console.log("모델:", "gpt-4o-mini");
     console.log("사용자 메시지:", userMessage);
     console.log("채팅 히스토리 개수:", chatHistory.length, "개");
     console.log("페이지 텍스트 길이:", pageText.length, "글자");
@@ -450,9 +450,10 @@ async function callOpenAI(userMessage) {
     console.log("============================");
 
     const requestBody = {
-      model: "gpt-5-nano",
+      model: "gpt-4o-mini",
       messages: messages,
-      max_completion_tokens: 3000,
+      max_tokens: 1000,
+      temperature: 0.7,
     };
 
     console.log("요청 본문:", JSON.stringify(requestBody, null, 2));
