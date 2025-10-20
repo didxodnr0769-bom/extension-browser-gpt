@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- API 키 입력 영역 -->
+    <div class="api-key-section">
+      <input
+        type="password"
+        id="apiKeyInput"
+        placeholder="OpenAI API 키를 입력하세요"
+        class="api-key-input"
+      />
+      <button id="saveApiKeyBtn" class="save-api-key-btn">저장</button>
+    </div>
+
+    <!-- 채팅 기록 영역 -->
+    <div class="chat-container" id="chatContainer">
+      <div class="welcome-message">
+        <p>안녕하세요! 현재 페이지에 대해 무엇이든 물어보세요.</p>
+      </div>
+    </div>
+
+    <!-- 메시지 입력 영역 -->
+    <div class="input-section">
+      <textarea
+        id="messageInput"
+        placeholder="메시지를 입력하세요..."
+        rows="2"
+        class="message-input"
+      ></textarea>
+      <button id="sendBtn" class="send-btn" disabled>전송</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
