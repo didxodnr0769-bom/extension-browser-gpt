@@ -3,6 +3,60 @@ let apiKey = '';
 let pageText = '';
 let chatHistory = [];
 
+// 간단한 마크다운 렌더러
+function parseMarkdown(text) {
+  // HTML 이스케이프
+  const escapeHtml = (str) => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  };
+
+  let html = text;
+
+  // 코드 블록 (```)
+  html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+    return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+  });
+
+  // 인라인 코드 (`)
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // 제목 (##)
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+  // 굵게 (**)
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+  // 기울임 (*)
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // 링크 ([text](url))
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+  // 순서 없는 리스트 (-)
+  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+  // 순서 있는 리스트 (1.)
+  html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+
+  // 줄바꿈
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+
+  // 단락으로 감싸기
+  html = `<p>${html}</p>`;
+
+  // 빈 단락 제거
+  html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/<p><br><\/p>/g, '');
+
+  return html;
+}
+
 // DOM 요소
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
@@ -21,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 이벤트 리스너 등록
   saveApiKeyBtn.addEventListener('click', saveApiKey);
   sendBtn.addEventListener('click', sendMessage);
-  messageInput.addEventListener('keydown', (e) => {
+  messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -174,7 +228,13 @@ function addAIMessage(message, isError = false) {
 
   const contentDiv = document.createElement('div');
   contentDiv.className = 'message-content';
-  contentDiv.textContent = message;
+
+  // Markdown 렌더링
+  if (!isError) {
+    contentDiv.innerHTML = parseMarkdown(message);
+  } else {
+    contentDiv.textContent = message;
+  }
 
   messageDiv.appendChild(contentDiv);
   chatContainer.appendChild(messageDiv);
