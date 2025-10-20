@@ -40,6 +40,14 @@ function extractPageText() {
   // 연속된 공백을 하나로 줄이고, 앞뒤 공백 제거
   const cleanedText = bodyText.replace(/\s+/g, ' ').trim();
 
+  // 디버깅: 추출된 텍스트 로그
+  console.log('=== 페이지 텍스트 추출 완료 ===');
+  console.log('페이지 URL:', window.location.href);
+  console.log('페이지 제목:', document.title);
+  console.log('추출된 텍스트 길이:', cleanedText.length, '글자');
+  console.log('추출된 전체 텍스트:', cleanedText);
+  console.log('===============================');
+
   return cleanedText;
 }
 
