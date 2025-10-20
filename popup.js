@@ -66,18 +66,28 @@ const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
 const chatContainer = document.getElementById("chatContainer");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
+const summarizeBtn = document.getElementById("summarizeBtn");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
 // 초기화
 document.addEventListener("DOMContentLoaded", async () => {
   // 저장된 API 키 불러오기
   await loadApiKey();
 
+  // 저장된 채팅 히스토리 불러오기
+  await loadChatHistory();
+
   // 페이지 텍스트 추출
   await extractPageText();
+
+  // 메시지 입력창에 포커스
+  messageInput.focus();
 
   // 이벤트 리스너 등록
   saveApiKeyBtn.addEventListener("click", saveApiKey);
   sendBtn.addEventListener("click", sendMessage);
+  summarizeBtn.addEventListener("click", summarizePage);
+  clearHistoryBtn.addEventListener("click", clearChatHistory);
   messageInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -184,10 +194,97 @@ async function extractPageText() {
   }
 }
 
+// 채팅 히스토리 불러오기
+async function loadChatHistory() {
+  try {
+    const result = await chrome.storage.local.get("chat_history");
+    if (result.chat_history && result.chat_history.length > 0) {
+      chatHistory = result.chat_history;
+
+      // welcome 메시지 제거
+      const welcomeMessage = chatContainer.querySelector(".welcome-message");
+      if (welcomeMessage) {
+        welcomeMessage.remove();
+      }
+
+      // 저장된 히스토리 표시
+      chatHistory.forEach((msg) => {
+        if (msg.role === "user") {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message user";
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "message-content";
+          contentDiv.textContent = msg.content;
+          messageDiv.appendChild(contentDiv);
+          chatContainer.appendChild(messageDiv);
+        } else if (msg.role === "assistant") {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message ai";
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "message-content";
+          contentDiv.innerHTML = parseMarkdown(msg.content);
+          messageDiv.appendChild(contentDiv);
+          chatContainer.appendChild(messageDiv);
+        }
+      });
+
+      scrollToBottom();
+    }
+  } catch (error) {
+    console.error("채팅 히스토리 불러오기 실패:", error);
+  }
+}
+
+// 채팅 히스토리 저장
+async function saveChatHistory() {
+  try {
+    await chrome.storage.local.set({ chat_history: chatHistory });
+  } catch (error) {
+    console.error("채팅 히스토리 저장 실패:", error);
+  }
+}
+
+// 채팅 히스토리 제거
+async function clearChatHistory() {
+  if (
+    confirm("모든 대화 이력을 제거하시겠습니까? 이 작업은 되돌릴 수 없습니다.")
+  ) {
+    chatHistory = [];
+    await chrome.storage.local.remove("chat_history");
+
+    // 채팅 컨테이너 초기화
+    chatContainer.innerHTML = `
+      <div class="welcome-message">
+        <p>안녕하세요! 현재 페이지에 대해 무엇이든 물어보세요.</p>
+      </div>
+    `;
+  }
+}
+
+// 페이지 요약 기능
+async function summarizePage() {
+  if (!apiKey) {
+    addAIMessage(
+      "입력하신 API 키가 유효하지 않은 것 같아요. 상단의 입력창에서 키를 다시 한번 확인해 주시겠어요?"
+    );
+    return;
+  }
+
+  // 사용자 메시지 표시
+  addUserMessage("페이지 요약");
+
+  // 로딩 인디케이터 표시
+  showLoadingIndicator();
+
+  // OpenAI API 호출
+  await callOpenAI("페이지 요약");
+}
+
 // 전송 버튼 상태 업데이트
 function updateSendButtonState() {
   const hasApiKey = apiKeyInput.value.trim().length > 0;
   sendBtn.disabled = !hasApiKey;
+  summarizeBtn.disabled = !hasApiKey;
 }
 
 // 메시지 전송
@@ -243,6 +340,9 @@ function addUserMessage(message) {
     role: "user",
     content: message,
   });
+
+  // 채팅 히스토리 저장 (백그라운드)
+  saveChatHistory();
 }
 
 // AI 메시지 추가
@@ -270,6 +370,9 @@ function addAIMessage(message, isError = false) {
       role: "assistant",
       content: message,
     });
+
+    // 채팅 히스토리 저장
+    saveChatHistory();
   }
 }
 
@@ -328,7 +431,7 @@ async function callOpenAI(userMessage) {
     // 디버깅: OpenAI API 요청 정보 로그
     console.log("=== OpenAI API 요청 시작 ===");
     console.log("요청 URL:", "https://api.openai.com/v1/chat/completions");
-    console.log("모델:", "gpt-4o-mini");
+    console.log("모델:", "gpt-5-nano");
     console.log("사용자 메시지:", userMessage);
     console.log("채팅 히스토리 개수:", chatHistory.length, "개");
     console.log("페이지 텍스트 길이:", pageText.length, "글자");
@@ -347,10 +450,9 @@ async function callOpenAI(userMessage) {
     console.log("============================");
 
     const requestBody = {
-      model: "gpt-4o-mini",
+      model: "gpt-5-nano",
       messages: messages,
-      max_tokens: 1000,
-      temperature: 0.7,
+      max_completion_tokens: 3000,
     };
 
     console.log("요청 본문:", JSON.stringify(requestBody, null, 2));
